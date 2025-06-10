@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useAuth } from "@/lib/AuthContext"
-import { Menu, X, Heart, MessageCircle, Calendar, BookOpen, User } from "lucide-react"
+import { Menu, X, Heart, MessageCircle, Calendar, BookOpen, User, Users } from "lucide-react" // Added Users icon
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
@@ -12,6 +12,7 @@ export default function Navigation() {
   const navItems = [
     { href: "/", label: "Home", icon: Heart },
     { href: "/chat", label: "Chat", icon: MessageCircle },
+    { href: "/friends", label: "Friends", icon: Users }, // Added Friends link
     { href: "/events", label: "Events", icon: Calendar },
     { href: "/content", label: "Content", icon: BookOpen },
     { href: "/profile", label: "Profile", icon: User },

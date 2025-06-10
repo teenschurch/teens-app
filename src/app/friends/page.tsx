@@ -16,9 +16,10 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import { useFriendRequests } from "@/lib/useFriendRequests";
 import FriendRequestCard from "@/components/FriendRequestCard";
-import { useFriendsList } from "@/lib/useFriendsList"; // Added
-import FriendCard from "@/components/FriendCard"; // Added
-import { Users, Loader2, Send, UserPlus, Smile } from "lucide-react"; // Added Smile icon
+import { useFriendsList } from "@/lib/useFriendsList";
+import FriendCard from "@/components/FriendCard";
+import UserSearchModal from "@/components/UserSearchModal"; // Added
+import { Users, Loader2, Send, UserPlus, Smile } from "lucide-react";
 
 // Basic AuthPrompt placeholder if not available
 const AuthPrompt = () => (
@@ -34,9 +35,10 @@ const AuthPrompt = () => (
 export default function FriendsPage() {
   const { user } = useAuth();
   const { pendingRequests, loading: loadingRequests } = useFriendRequests();
-  const { friends, loading: loadingFriends } = useFriendsList(); // Added
+  const { friends, loading: loadingFriends } = useFriendsList();
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
-  const [processingFriendId, setProcessingFriendId] = useState<string | null>(null); // Added
+  const [processingFriendId, setProcessingFriendId] = useState<string | null>(null);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false); // Added
 
   const handleAcceptRequest = async (requestId: string) => {
     if (!user) return;
@@ -108,11 +110,27 @@ export default function FriendsPage() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-3xl">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 flex items-center">
-          <Users className="mr-3 text-red-500" size={32}/> Manage Friends
-        </h1>
+      <header className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800 flex items-center">
+            <Users className="mr-3 text-red-500" size={32}/> Manage Friends
+          </h1>
+        </div>
+        <button
+          onClick={() => setIsSearchModalOpen(true)}
+          className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg shadow hover:shadow-md transition duration-150 ease-in-out flex items-center"
+        >
+          <UserPlus size={20} className="mr-2" />
+          Find People
+        </button>
       </header>
+
+      <UserSearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        // onSelectUser prop is omitted as UserSearchModal now handles friend requests internally
+        // If UserSearchModal needs to trigger a chat, that would be a different onSelectUser signature.
+      />
 
       <section id="friend-requests" className="mb-12">
         <h2 className="text-2xl font-semibold text-gray-700 mb-4 pb-2 border-b">Friend Requests</h2>
