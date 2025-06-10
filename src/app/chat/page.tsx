@@ -1,18 +1,28 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useAuth } from "@/lib/AuthContext"
 import { useMessages } from "@/lib/useMessages"
+import { useConversations } from "@/lib/useConversations" // Added
 import MessageInput from "@/components/MessageInput"
 import MessageList from "@/components/MessageList"
-import OnlineUsers from "@/components/OnlineUsers"
+// import OnlineUsers from "@/components/OnlineUsers"; // Replaced by ConversationList
+import ConversationList from "@/components/ConversationList" // Added
 import AuthPrompt from "@/components/AuthPrompt"
 import { MessageCircle } from "lucide-react"
 
 export default function Chat() {
   const { user } = useAuth()
-  const { messages, onlineUsers, sendMessage, sendReaction, loading, sending } = useMessages()
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null) // Added
+  const { messages, onlineUsers, sendMessage, sendReaction, loading, sending } =
+    useMessages(selectedConversationId) // Modified
+  const { conversations: allConversations } = useConversations() // Added for header
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const handleSelectConversation = (convId: string) => {
+    setSelectedConversationId(convId)
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -26,6 +36,30 @@ export default function Chat() {
     return <AuthPrompt />
   }
 
+  const selectedConversation = selectedConversationId
+    ? allConversations.find((c) => c.id === selectedConversationId)
+    : null
+
+  let chatTitle = "Teen Chat" // Default title
+  let chatSubtitle = `${onlineUsers.length} ${onlineUsers.length === 1 ? "person" : "people"} online`
+
+  if (selectedConversation && user) {
+    const otherParticipant = selectedConversation.participantDetails?.find(
+      (p) => p.uid !== user.uid,
+    )
+    chatTitle = otherParticipant?.displayName || "Direct Message"
+    chatSubtitle = "In conversation" // Or more specific like "Last active..."
+  } else if (selectedConversationId) {
+    // If a conversation is selected but details are not yet loaded (or it's a new one not in allConversations yet)
+    chatTitle = "Direct Message"
+    chatSubtitle = "Loading details..."
+  }
+
+  const typingUserDisplay = selectedConversation?.typingUsers
+    ?.filter(typingUser => typingUser.uid !== user.uid) // Exclude current user
+    ?.map(typingUser => typingUser.displayName || "Someone")
+    .join(", ");
+
   return (
     <div className="h-[calc(100vh-4rem)] flex">
       {/* Main Chat Area */}
@@ -38,10 +72,8 @@ export default function Chat() {
                 <MessageCircle className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-800">Teen Chat</h1>
-                <p className="text-sm text-gray-600">
-                  {onlineUsers.length} {onlineUsers.length === 1 ? "person" : "people"} online
-                </p>
+                <h1 className="text-xl font-bold text-gray-800">{chatTitle}</h1>
+                <p className="text-sm text-gray-600">{chatSubtitle}</p>
               </div>
             </div>
 
@@ -64,7 +96,12 @@ export default function Chat() {
                   </div>
                 ) : (
                   <>
-                    <MessageList messages={messages} currentUser={user} onReaction={sendReaction} />
+                    <MessageList
+                      messages={messages}
+                      currentUser={user}
+                      onReaction={sendReaction}
+                      conversationParticipants={selectedConversation?.participantDetails}
+                    />
                     <div ref={messagesEndRef} />
                   </>
                 )}
@@ -74,16 +111,32 @@ export default function Chat() {
             {/* Message Input */}
             <div className="border-t border-gray-200 p-4 bg-white">
               <div className="max-w-4xl mx-auto">
-                <MessageInput onSendMessage={sendMessage} sending={sending} />
+                <MessageInput
+                  onSendMessage={sendMessage}
+                  sending={sending}
+                  onSendMessage={sendMessage}
+                  sending={sending}
+                  disabled={!selectedConversationId || sending}
+                  conversationId={selectedConversationId} // Pass conversationId
+                  currentUser={user} // Pass currentUser
+                />
+                {typingUserDisplay && selectedConversationId && (
+                  <div className="text-xs text-gray-500 pt-1 pl-2 h-4">
+                    {typingUserDisplay} {selectedConversation.typingUsers && selectedConversation.typingUsers.filter(tu => tu.uid !== user.uid).length > 1 ? "are" : "is"} typing...
+                  </div>
+                )}
+                {!typingUserDisplay && selectedConversationId && (
+                  <div className="h-4"></div> // Placeholder to prevent layout shift
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Online Users Sidebar - Desktop Only */}
+      {/* Conversation List Sidebar - Desktop Only */}
       <div className="hidden lg:block w-64 border-l border-gray-200 bg-gray-50">
-        <OnlineUsers users={onlineUsers} />
+        <ConversationList onSelectConversation={handleSelectConversation} />
       </div>
     </div>
   )

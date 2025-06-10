@@ -3,12 +3,13 @@
 import { formatDistanceToNow } from "date-fns"
 import { useState } from "react"
 import { Heart, Smile, ThumbsUp, PlayIcon as Pray } from "lucide-react"
-import type { Message, User } from "@/lib/types"
+import type { Message, User, Conversation } from "@/lib/types" // Added Conversation for participant details type
 
 interface MessageListProps {
   messages: Message[]
   currentUser: User
   onReaction: (messageId: string, emoji: string) => Promise<void>
+  conversationParticipants?: Conversation["participantDetails"]; // Added prop
 }
 
 const reactionEmojis = [
@@ -18,7 +19,12 @@ const reactionEmojis = [
   { emoji: "🙏", icon: Pray, label: "Pray" },
 ]
 
-export default function MessageList({ messages, currentUser, onReaction }: MessageListProps) {
+export default function MessageList({
+  messages,
+  currentUser,
+  onReaction,
+  conversationParticipants,
+}: MessageListProps) {
   const [showReactions, setShowReactions] = useState<string | null>(null)
 
   if (messages.length === 0) {
@@ -126,6 +132,29 @@ export default function MessageList({ messages, currentUser, onReaction }: Messa
                     {message.createdAt
                       ? formatDistanceToNow(message.createdAt.toDate(), { addSuffix: true })
                       : "Just now"}
+                    {isOwnMessage && (
+                      <span className="ml-1">
+                        {(() => {
+                          const otherUserIds = (conversationParticipants || [])
+                            .filter(p => p.uid !== currentUser.uid)
+                            .map(p => p.uid);
+
+                          if (otherUserIds.length === 0 && message.userId === currentUser.uid) {
+                            // Message sent in a "chat with self" or if participant details are missing
+                            return "✓"; // Simple sent indicator
+                          }
+
+                          const isReadByAllOthers = otherUserIds.length > 0 &&
+                            otherUserIds.every(uid => message.readBy && message.readBy[uid]);
+
+                          if (isReadByAllOthers) {
+                            return <span className="text-blue-500">✓✓ Seen</span>;
+                          } else {
+                            return "✓ Sent";
+                          }
+                        })()}
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
